@@ -20,6 +20,10 @@
 </div>
 
 <style>
+	:global(html, body) {
+		font-family: 'Open Sans', Helvetica, sans-serif;
+	}
+
 	.app {
 		display: flex;
 		flex-direction: column;

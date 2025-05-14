@@ -1,0 +1,7 @@
+.card-like {
+    display: flex;
+    background-color: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 12px 12px 0 rgba(0, 0, 0, 0.1);
+}
