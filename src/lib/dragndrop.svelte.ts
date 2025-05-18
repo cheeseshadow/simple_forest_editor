@@ -1,8 +1,12 @@
-export class DragndropSvelte {
+import type { Point } from '$lib/utils'
+
+export class Dragndrop {
 	private id
 
 	x = $state(0)
 	y = $state(0)
+
+	dragging = $state(false)
 
 	private startX = 0
 	private startY = 0
@@ -24,9 +28,17 @@ export class DragndropSvelte {
 		}
 	}
 
+	get position(): Point {
+		return {
+			x: this.x,
+			y: this.y
+		}
+	}
+
 	public startDrag = (e: MouseEvent) => {
 		e.preventDefault()
 		e.stopPropagation()
+		this.dragging = true
 		this.startX = this.x
 		this.startY = this.y
 		this.startDragX = e.clientX
@@ -35,11 +47,14 @@ export class DragndropSvelte {
 		const handleMouseMove = (e: MouseEvent): void => {
 			this.updateDrag(e)
 		}
+
 		const handleMouseUp = (): void => {
 			window.removeEventListener('mousemove', handleMouseMove)
 			window.removeEventListener('mouseup', handleMouseUp)
+			this.dragging = false
 			this.savePosition()
 		}
+
 		window.addEventListener('mousemove', handleMouseMove)
 		window.addEventListener('mouseup', handleMouseUp)
 		window.addEventListener('mouseleave', handleMouseUp)

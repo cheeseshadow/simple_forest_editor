@@ -1,21 +1,15 @@
 <script lang="ts">
-	import { DragndropSvelte } from '$lib/dragndrop.svelte'
+	import { Dragndrop } from '$lib/dragndrop.svelte'
 	import Card from '../components/Card.svelte'
 	import Menu from '../components/Menu.svelte'
-	import type { Item } from '$lib/utils'
 	import { onDestroy, onMount } from 'svelte'
+	import { dummyCards } from '$lib/dummyData'
+	import { drawLines, getCenter, getMiddle, type Item, type Line } from '$lib/utils'
 
-	/*
-	"id" : Int,
-  "name" : String,
-  "birth date" : String,
-  "death date" : String,
-  "profession" : String,
-  "mother" : Int,
-  "father" : Int
-	 */
 	let canvas: HTMLCanvasElement
 	let container: HTMLDivElement
+
+	let selectedCard: number | null = null
 
 	const resizeCanvas = () => {
 		if (!canvas || !container) return
@@ -24,78 +18,88 @@
 		canvas.height = containerRect.height
 	}
 
-	const updateLine = () => {
+	const updateGraph = (data: Item[]) => {
 		const ctx = canvas.getContext('2d')
 		if (!ctx) return
+
+		const parentConnectionLines: Line[] = []
+		const childrenConnectionLines: Line[] = []
+		const selectedParentConnectionLines: Line[] = []
+		const selectedChildrenConnectionLines: Line[] = []
 
 		ctx.clearRect(0, 0, canvas.width, canvas.height)
 		ctx.beginPath()
 
-		let prevBr = false
-		for (let key in divRefs) {
-			const item = divRefs[key]
-			const x = item.offsetLeft + item.offsetWidth / 2 + dragndrop.x
-			const y = item.offsetTop + item.offsetHeight / 2 + dragndrop.y
+		for (let item of data) {
+			const parents = [item.mother, item.father].filter((i) => i !== null)
+			const itemCoords = getCenter(divRefs[item.id], dragndrop.position)
 
-			if (!prevBr) {
-				ctx.moveTo(x, y)
-				prevBr = true
-			} else {
-				ctx.lineTo(x, y)
+			let parentConnections =
+				selectedCard === null
+					? parentConnectionLines
+					: parents.some((parentId) => selectedCard === parentId)
+						? selectedParentConnectionLines
+						: parentConnectionLines
+
+			let childrenConnections =
+				selectedCard === null
+					? childrenConnectionLines
+					: item.id === selectedCard
+						? selectedChildrenConnectionLines
+						: childrenConnectionLines
+
+			let parentNode = null
+			// connect parents
+			const parentPositions = parents.map((parentId) => {
+				return getCenter(divRefs[parentId], dragndrop.position)
+			})
+			if (parentPositions.length === 2) {
+				parentConnections.push({
+					start: parentPositions[0],
+					end: parentPositions[1]
+				})
+
+				parentNode = getMiddle(parentPositions[0], parentPositions[1])
+			} else if (parentPositions.length === 1) {
+				parentNode = parentPositions[0]
 			}
-			ctx.strokeStyle = 'red'
-			ctx.lineWidth = 2
-			ctx.stroke()
+
+			if (parentNode) {
+				childrenConnections.push({
+					start: parentNode,
+					end: itemCoords
+				})
+			}
 		}
 
-		// const div1 = divRefs[0]
-		// const div2 = divRefs[1]
-		// const r1 = div1.getBoundingClientRect()
-		// const r2 = div2.getBoundingClientRect()
-		// // Get centers, adjust by current scroll
-		// const line = {
-		// 	x1: r1.left + r1.width / 2,
-		// 	y1: r1.top + r1.height / 2,
-		// 	x2: r2.left + r2.width / 2,
-		// 	y2: r2.top + r2.height / 2
-		// }
-		// lines = [...lines, line]
+		drawLines(parentConnectionLines, ctx, '#C9E4DE')
+		drawLines(childrenConnectionLines, ctx, '#DBCDF0')
+		drawLines(selectedParentConnectionLines, ctx, '#F7D9C4')
+		drawLines(selectedChildrenConnectionLines, ctx, '#F7D9C4')
 	}
 
-	const dragndrop = new DragndropSvelte()
-	const cards: Item[] = [
-		{
-			id: 0,
-			name: 'John Doe',
-			job: 'Software Engineer',
-			gender: 'male',
-			mother: 1,
-			father: 2
-		},
-		{
-			id: 1,
-			name: 'Jane Smith',
-			job: 'Data Scientist',
-			gender: 'female',
-			mother: 3,
-			father: 4
-		},
-		{
-			id: 2,
-			name: 'Alice Johnson',
-			job: 'Product Manager',
-			gender: 'female',
-			mother: 5,
-			father: 6
-		}
-	]
+	const dragndrop = new Dragndrop()
+	const cards = dummyCards
 
 	const divRefs: { [key: number]: HTMLDivElement } = {}
 
+	const onCardSelected = (id: number) => {
+		selectedCard = id
+		updateGraph(cards)
+	}
+
+	// const dropCardSelection = () => {
+	// 	selectedCard = null
+	// 	updateGraph(cards)
+	// }
+
 	onMount(() => {
 		window.addEventListener('resize', resizeCanvas)
+		window.addEventListener('mousemove', () => {
+			updateGraph(cards)
+		})
 		resizeCanvas()
-		updateLine()
+		updateGraph(cards)
 	})
 
 	onDestroy(() => {
@@ -108,24 +112,16 @@
 	<meta name="description" content="Json tree editor" />
 </svelte:head>
 
-<div
-	class="main-canvas"
-	onmousedown={dragndrop.startDrag}
-	onmouseup={updateLine}
-	bind:this={container}
->
+<div class="main-canvas" onmousedown={dragndrop.startDrag} bind:this={container}>
 	<Menu />
-	<canvas class="backdrops" bind:this={canvas}>
-		<!--		<line x1="0" y1="0" x2="100" y2="100" stroke="red" stroke-width="2" />-->
-		<!--		{#each lines as line (line)}-->
-		<!--			<line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke="red" stroke-width="2" />-->
-		<!--		{/each}-->
-	</canvas>
+	<canvas class="backdrops" bind:this={canvas}></canvas>
 	<div class="container-background">
 		<div class="main-container" style="translate: {dragndrop.x}px {dragndrop.y}px;">
 			{#each cards as card (card.id)}
 				<Card
 					setElementRef={(el: HTMLDivElement) => (divRefs[card.id] = el)}
+					{onCardSelected}
+					cardSelected={selectedCard === card.id}
 					id={card.id}
 					name={card.name}
 					job={card.job}

@@ -1,17 +1,7 @@
 <script lang="ts">
-	import { DragndropSvelte } from '$lib/dragndrop.svelte.js'
+	import { Dragndrop } from '$lib/dragndrop.svelte.js'
 	import { onMount } from 'svelte'
 	import { assumeGenderColor, type Gender } from '$lib/utils'
-
-	/*
-	"id" : Int,
-  "name" : String,
-  "birth date" : String,
-  "death date" : String,
-  "profession" : String,
-  "mother" : Int,
-  "father" : Int
-	 */
 
 	export let setElementRef: (el: HTMLDivElement) => void
 	let elementRef: HTMLDivElement
@@ -21,11 +11,14 @@
 	export let job: string
 	export let gender: Gender
 
+	export let cardSelected: boolean = false
+	export let onCardSelected: ((id: number) => void) | null = null
+
 	const color = assumeGenderColor(gender)
 	// export let mother: string
 	// export let father: string
 
-	const dragndrop = new DragndropSvelte(id.toString())
+	const dragndrop = new Dragndrop(id.toString())
 
 	onMount(() => {
 		dragndrop.init()
@@ -36,8 +29,11 @@
 <div
 	bind:this={elementRef}
 	class="card card-like"
-	style="top: {dragndrop.y}px; left: {dragndrop.x}px; background: {color};"
+	style="top: {dragndrop.y}px; left: {dragndrop.x}px; background: {cardSelected
+		? '#F7D9C4'
+		: color};"
 	onmousedown={dragndrop.startDrag}
+	onclick={() => onCardSelected && onCardSelected(id)}
 >
 	<div class="name">{name}</div>
 	<div class="job">{job}</div>
