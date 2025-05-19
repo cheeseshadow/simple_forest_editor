@@ -1,17 +1,40 @@
 <script lang="ts">
+	export let onFileLoaded: (fileContent: string) => void = () => {}
+	export let onSaveFile: () => void = () => {}
+
 	type MenuSection = 'main' | 'upload'
 
 	let page: MenuSection = 'main'
+	let input: HTMLInputElement | null = null
+
+	const loadFile = () => {
+		if (!input) return
+
+		if (input.files && input.files.length > 0) {
+			const file = input.files[0]
+			const reader = new FileReader()
+			reader.onload = (e) => {
+				const fileContent = e.target?.result
+				if (input) {
+					input.value = ''
+				}
+				onFileLoaded(fileContent as string)
+			}
+			reader.readAsText(file)
+		} else {
+			console.warn('No file selected')
+		}
+	}
 </script>
 
 <div class="menu">
 	{#if page === 'main'}
-		<button>Save</button>
+		<button onclick={onSaveFile}>Save</button>
 		<button onclick={() => (page = 'upload')}>Load</button>
 	{:else if page === 'upload'}
-		<form class="form">
+		<form class="form" onsubmit={loadFile}>
 			<button onclick={() => (page = 'main')}>Back</button>
-			<input type="file" />
+			<input type="file" bind:this={input} />
 			<button type="submit">Load</button>
 		</form>
 	{/if}

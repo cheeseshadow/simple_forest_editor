@@ -3,8 +3,10 @@
 	import Card from '../components/Card.svelte'
 	import Menu from '../components/Menu.svelte'
 	import { onDestroy, onMount } from 'svelte'
-	import { dummyCards } from '$lib/dummyData'
-	import { drawLines, getCenter, getMiddle, type Item, type Line } from '$lib/utils'
+	import { drawLines, getCenter, getMiddle } from '$lib/utils/drawing'
+	import type { Item, Line } from '$lib/utils/types'
+	import { type SavedItem, saveFile } from '$lib/utils/files'
+	import { loadCards, resetCards, saveCards, savePositions } from '$lib/utils/dragndrop'
 
 	let canvas: HTMLCanvasElement
 	let container: HTMLDivElement
@@ -19,6 +21,7 @@
 	}
 
 	const updateGraph = (data: Item[]) => {
+		if (!canvas || !container) return
 		const ctx = canvas.getContext('2d')
 		if (!ctx) return
 
@@ -31,6 +34,7 @@
 		ctx.beginPath()
 
 		for (let item of data) {
+			if (!divRefs[item.id]) continue
 			const parents = [item.mother, item.father].filter((i) => i !== null)
 			const itemCoords = getCenter(divRefs[item.id], dragndrop.position)
 
@@ -79,13 +83,14 @@
 	}
 
 	const dragndrop = new Dragndrop()
-	const cards = dummyCards
+	let cards: Item[] = []
 
-	const divRefs: { [key: number]: HTMLDivElement } = {}
+	const divRefs: { [key: string]: HTMLDivElement } = {}
 
-	const onCardSelected = (id: number) => {
-		selectedCard = id
-		updateGraph(cards)
+	const onCardSelected = (id: string) => {
+		// selectedCard = id
+		// updateGraph(cards)
+		console.log(id)
 	}
 
 	// const dropCardSelection = () => {
@@ -93,13 +98,55 @@
 	// 	updateGraph(cards)
 	// }
 
+	const initScene = (savedCards: SavedItem[]) => {
+		resetCards()
+		savePositions(savedCards)
+		cards = savedCards.map((savedItem) => savedItem.item)
+		saveCards(cards)
+	}
+
+	const onFileLoaded = (fileContent: string) => {
+		try {
+			const jsonData = JSON.parse(fileContent)
+			if (Array.isArray(jsonData)) {
+				const savedItems = jsonData as SavedItem[]
+				initScene(savedItems)
+			} else {
+				alert('Invalid JSON data')
+			}
+		} catch (error) {
+			alert(`Error parsing JSON: ${error}`)
+		}
+	}
+
+	const onSaveFile = () => {
+		const savedItems: SavedItem[] = cards.map((item) => {
+			const styles = window.getComputedStyle(divRefs[item.id])
+			return {
+				item,
+				position: {
+					x: parseInt(styles.left),
+					y: parseInt(styles.top)
+				}
+			}
+		})
+
+		saveFile(savedItems)
+	}
+
 	onMount(() => {
 		window.addEventListener('resize', resizeCanvas)
 		window.addEventListener('mousemove', () => {
 			updateGraph(cards)
 		})
 		resizeCanvas()
-		updateGraph(cards)
+
+		const savedCards = loadCards()
+		if (savedCards) {
+			cards = savedCards
+			// initScene(savedCards)
+			updateGraph(cards)
+		}
 	})
 
 	onDestroy(() => {
@@ -113,7 +160,7 @@
 </svelte:head>
 
 <div class="main-canvas" onmousedown={dragndrop.startDrag} bind:this={container}>
-	<Menu />
+	<Menu {onFileLoaded} {onSaveFile} />
 	<canvas class="backdrops" bind:this={canvas}></canvas>
 	<div class="container-background">
 		<div class="main-container" style="translate: {dragndrop.x}px {dragndrop.y}px;">

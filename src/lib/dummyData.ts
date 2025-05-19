@@ -1,4 +1,4 @@
-import type { Item } from '$lib/utils'
+import type { Item } from '$lib/utils/types'
 
 export const dummyCards: Item[] = [
 	{

@@ -1,4 +1,5 @@
-import type { Point } from '$lib/utils'
+import type { Point } from '$lib/utils/types'
+import { loadPosition, savePosition } from '$lib/utils/dragndrop'
 
 export class Dragndrop {
 	private id
@@ -8,10 +9,8 @@ export class Dragndrop {
 
 	dragging = $state(false)
 
-	private startX = 0
-	private startY = 0
-	private startDragX = 0
-	private startDragY = 0
+	private startPosition: Point = { x: 0, y: 0 }
+	private startDragPosition: Point = { x: 0, y: 0 }
 
 	constructor(id: string | undefined = undefined) {
 		this.id = id
@@ -19,11 +18,10 @@ export class Dragndrop {
 
 	public init = () => {
 		if (this.id) {
-			const savedPosition = sessionStorage.getItem('dragndrop' + this.id)
+			const savedPosition = loadPosition(this.id)
 			if (savedPosition) {
-				const { x, y } = JSON.parse(savedPosition)
-				this.x = x
-				this.y = y
+				this.x = savedPosition.x
+				this.y = savedPosition.y
 			}
 		}
 	}
@@ -39,10 +37,8 @@ export class Dragndrop {
 		e.preventDefault()
 		e.stopPropagation()
 		this.dragging = true
-		this.startX = this.x
-		this.startY = this.y
-		this.startDragX = e.clientX
-		this.startDragY = e.clientY
+		this.startPosition = { x: this.x, y: this.y }
+		this.startDragPosition = { x: e.clientX, y: e.clientY }
 
 		const handleMouseMove = (e: MouseEvent): void => {
 			this.updateDrag(e)
@@ -61,14 +57,14 @@ export class Dragndrop {
 	}
 
 	private updateDrag = (e: MouseEvent) => {
-		const dx = e.clientX - this.startDragX
-		const dy = e.clientY - this.startDragY
-		this.x = this.startX + dx
-		this.y = this.startY + dy
+		const dx = e.clientX - this.startDragPosition.x
+		const dy = e.clientY - this.startDragPosition.y
+		this.x = this.startPosition.x + dx
+		this.y = this.startPosition.y + dy
 	}
 
 	private savePosition = () => {
 		if (!this.id) return
-		sessionStorage.setItem('dragndrop' + this.id, JSON.stringify({ x: this.x, y: this.y }))
+		savePosition(this.id, { x: this.x, y: this.y })
 	}
 }

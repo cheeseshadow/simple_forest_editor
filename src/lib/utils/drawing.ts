@@ -1,23 +1,6 @@
+import type { Line, Point } from '$lib/utils/types'
+
 export type Gender = 'male' | 'female'
-
-export type Item = {
-	id: number
-	name: string
-	job: string
-	gender: Gender
-	mother: number | null
-	father: number | null
-}
-
-export type Point = {
-	x: number
-	y: number
-}
-
-export type Line = {
-	start: Point
-	end: Point
-}
 
 export const assumeGenderColor = (gender: Gender) => {
 	switch (gender) {
@@ -58,5 +41,3 @@ export const drawLines = (
 	}
 	ctx.stroke()
 }
-
-// export const cardSelected
